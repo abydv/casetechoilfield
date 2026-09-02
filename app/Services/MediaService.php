@@ -55,7 +55,47 @@ class MediaService
             throw new RuntimeException('Upload failed: ' . $file->getErrorString());
         }
 
-        $mime = $file->getMimeType();
+        $mime      = $file->getMimeType();
+        $extension = $this->requireAllowedExtension($mime);
+        $subdir    = date('Y/m');
+        $targetDir = $this->prepareTargetDir($subdir);
+        $randomName = bin2hex(random_bytes(16)) . '.' . $extension;
+
+        $file->move($targetDir, $randomName);
+
+        return $this->ingest($targetDir . '/' . $randomName, $subdir . '/' . $randomName, $file->getClientName(), $mime, $extension, $folderId, $uploadedBy);
+    }
+
+    /**
+     * Same pipeline as upload(), for a file that already exists on local
+     * disk instead of arriving as an HTTP UploadedFile — e.g. a seeder
+     * migrating real media assets from the live site (see
+     * docs/current-site-audit.md §9). UploadedFile::move() always calls
+     * move_uploaded_file(), which only accepts genuine PHP upload temp
+     * files, so this copies the file into place directly instead.
+     */
+    public function ingestLocalFile(string $localPath, string $originalName, ?int $folderId = null, ?int $uploadedBy = null): Media
+    {
+        if (! is_file($localPath)) {
+            throw new RuntimeException('File not found: ' . $localPath);
+        }
+
+        $mime      = (string) mime_content_type($localPath);
+        $extension = $this->requireAllowedExtension($mime);
+        $subdir    = date('Y/m');
+        $targetDir = $this->prepareTargetDir($subdir);
+        $randomName = bin2hex(random_bytes(16)) . '.' . $extension;
+        $storedPath = $targetDir . '/' . $randomName;
+
+        if (! copy($localPath, $storedPath)) {
+            throw new RuntimeException('Could not copy file into uploads directory.');
+        }
+
+        return $this->ingest($storedPath, $subdir . '/' . $randomName, $originalName, $mime, $extension, $folderId, $uploadedBy);
+    }
+
+    private function requireAllowedExtension(string $mime): string
+    {
         $isImage = isset(self::ALLOWED_IMAGE_MIMES[$mime]);
         $isDoc   = isset(self::ALLOWED_DOCUMENT_MIMES[$mime]);
 
@@ -63,20 +103,23 @@ class MediaService
             throw new RuntimeException('Unsupported file type: ' . $mime);
         }
 
-        $extension = $isImage ? self::ALLOWED_IMAGE_MIMES[$mime] : self::ALLOWED_DOCUMENT_MIMES[$mime];
-        $subdir    = date('Y/m');
+        return $isImage ? self::ALLOWED_IMAGE_MIMES[$mime] : self::ALLOWED_DOCUMENT_MIMES[$mime];
+    }
+
+    private function prepareTargetDir(string $subdir): string
+    {
         $targetDir = $this->uploadRoot . '/' . $subdir;
 
         if (! is_dir($targetDir) && ! mkdir($targetDir, 0755, true) && ! is_dir($targetDir)) {
             throw new RuntimeException('Could not create upload directory.');
         }
 
-        $randomName = bin2hex(random_bytes(16)) . '.' . $extension;
-        $file->move($targetDir, $randomName);
+        return $targetDir;
+    }
 
-        $storedPath = $targetDir . '/' . $randomName;
-        $relativePath = $subdir . '/' . $randomName;
-
+    private function ingest(string $storedPath, string $relativePath, string $originalName, string $mime, string $extension, ?int $folderId, ?int $uploadedBy): Media
+    {
+        $isImage = isset(self::ALLOWED_IMAGE_MIMES[$mime]);
         $width = $height = null;
 
         if ($isImage) {
@@ -86,7 +129,7 @@ class MediaService
         $mediaId = $this->mediaModel->insert([
             'folder_id'         => $folderId,
             'filename'          => $relativePath,
-            'original_filename' => $file->getClientName(),
+            'original_filename' => $originalName,
             'mime_type'         => $mime,
             'size_bytes'        => filesize($storedPath) ?: 0,
             'width'             => $width,
@@ -96,7 +139,7 @@ class MediaService
         ], true);
 
         if ($isImage) {
-            $this->generateVariants((int) $mediaId, $storedPath, $targetDir, $extension, $width);
+            $this->generateVariants((int) $mediaId, $storedPath, dirname($storedPath), $extension, $width);
         }
 
         return $this->mediaModel->find($mediaId);
@@ -194,12 +237,22 @@ class MediaService
 
     private function loadGdImage(string $path, string $extension)
     {
-        return match ($extension) {
+        $image = match ($extension) {
             'jpg', 'jpeg' => @imagecreatefromjpeg($path),
             'png'         => @imagecreatefrompng($path),
             'webp'        => @imagecreatefromwebp($path),
             default       => null,
         };
+
+        // imagewebp() rejects a palette image outright ("Palette image not
+        // supported by webp") — a plain 8-bit PNG (common for logos/simple
+        // graphics, not just ones GD itself produced) loads as one via
+        // imagecreatefrompng(), so always convert before use.
+        if ($image !== false && $image !== null && ! imageistruecolor($image)) {
+            imagepalettetotruecolor($image);
+        }
+
+        return $image;
     }
 
     public function delete(int $mediaId): bool

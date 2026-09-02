@@ -60,32 +60,45 @@ jobs:
         run: composer validate --strict
 
       - name: Prepare test environment
+        # CodeIgniter's DotEnv only lets a job-level `env:` override apply
+        # to a key that ISN'T already set in .env (Config/DotEnv.php calls
+        # getenv($name, true), which only sees prior putenv() calls within
+        # this same process — a real env var from the workflow YAML never
+        # counts, so .env.example's own committed values would silently
+        # win over any env: block on the steps below). Patch .env directly
+        # instead: point both the default group (used by `spark migrate`,
+        # which has no reliable way to target a named group without
+        # ENVIRONMENT=testing — reserved for PHPUnit, see the next step's
+        # comment) and the tests group (used by PHPUnit) at the CI MySQL
+        # service over TCP. 127.0.0.1, not localhost: MySQL treats
+        # "localhost" as a unix-socket hint, which doesn't exist in this
+        # Docker service container.
         run: |
           cp .env.example .env
           php spark key:generate --force
+          sed -i \
+            -e "s/^database\.default\.hostname = .*/database.default.hostname = 127.0.0.1/" \
+            -e "s/^database\.default\.database = .*/database.default.database = casetech_cms_test/" \
+            -e "s/^database\.tests\.hostname = .*/database.tests.hostname = 127.0.0.1/" \
+            -e "s/^database\.tests\.database = .*/database.tests.database = casetech_cms_test/" \
+            .env
 
       - name: Run migrations (up + rollback + up, against MySQL)
-        env:
-          database.tests.hostname: 127.0.0.1
-          database.tests.database: casetech_cms_test
-          database.tests.username: root
-          database.tests.password: ''
-          database.tests.DBDriver: MySQLi
-          database.tests.port: 3306
+        # Targets the "default" group (see .env patch above), not "tests":
+        # ENVIRONMENT=testing is reserved for PHPUnit
+        # (app/Config/Boot/testing.php) and crashes a plain spark
+        # invocation outside phpunit's bootstrap (it assumes SUPPORTPATH
+        # is already defined, which only tests/bootstrap.php sets).
+        # migrate:rollback also has no -g/group flag to target a specific
+        # group directly, so the default group is the only one both
+        # migrate and migrate:rollback can reliably reach here.
         run: |
-          php spark migrate --all -e testing
-          php spark migrate:rollback --all -e testing
-          php spark migrate --all -e testing
+          php spark migrate --all
+          php spark migrate:rollback --all
+          php spark migrate --all
 
       - name: Run test suite
         if: hashFiles('tests/**/*Test.php') != ''
-        env:
-          database.tests.hostname: 127.0.0.1
-          database.tests.database: casetech_cms_test
-          database.tests.username: root
-          database.tests.password: ''
-          database.tests.DBDriver: MySQLi
-          database.tests.port: 3306
         run: vendor/bin/phpunit
 
   build:
