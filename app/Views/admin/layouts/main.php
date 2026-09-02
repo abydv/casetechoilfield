@@ -14,7 +14,9 @@
                 <a href="<?= site_url('admin') ?>">Dashboard</a>
                 <a href="<?= site_url('admin/pages') ?>">Pages</a>
                 <a href="<?= site_url('admin/products') ?>">Products</a>
+                <a href="<?= site_url('admin/product-categories') ?>">Product Categories</a>
                 <a href="<?= site_url('admin/services') ?>">Services</a>
+                <a href="<?= site_url('admin/service-categories') ?>">Service Categories</a>
                 <a href="<?= site_url('admin/projects') ?>">Projects</a>
                 <a href="<?= site_url('admin/media') ?>">Media</a>
                 <a href="<?= site_url('admin/menus') ?>">Menus</a>

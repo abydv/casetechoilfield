@@ -12,6 +12,8 @@ $routes->get('/', 'Home::index');
 $routes->get('healthz', 'Health::check');
 $routes->get('products', 'Site\ProductController::index');
 $routes->get('products/(:segment)', 'Site\ProductController::show/$1');
+$routes->get('services', 'Site\ServiceController::index');
+$routes->get('services/(:segment)', 'Site\ServiceController::show/$1');
 $routes->post('enquiry', 'Site\EnquiryController::submit');
 
 // --- Admin: auth (unauthenticated) -------------------------------------
@@ -40,4 +42,20 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->post('products/(:num)/delete', 'Admin\ProductController::delete/$1');
     $routes->post('products/(:num)/images/(:num)/delete', 'Admin\ProductController::deleteImage/$1/$2');
     $routes->post('products/(:num)/documents/(:num)/delete', 'Admin\ProductController::deleteDocument/$1/$2');
+
+    $routes->get('service-categories', 'Admin\ServiceCategoryController::index');
+    $routes->get('service-categories/create', 'Admin\ServiceCategoryController::create');
+    $routes->post('service-categories', 'Admin\ServiceCategoryController::store');
+    $routes->get('service-categories/(:num)/edit', 'Admin\ServiceCategoryController::edit/$1');
+    $routes->post('service-categories/(:num)/update', 'Admin\ServiceCategoryController::update/$1');
+    $routes->post('service-categories/(:num)/delete', 'Admin\ServiceCategoryController::delete/$1');
+
+    $routes->get('services', 'Admin\ServiceController::index');
+    $routes->get('services/create', 'Admin\ServiceController::create');
+    $routes->post('services', 'Admin\ServiceController::store');
+    $routes->get('services/(:num)/edit', 'Admin\ServiceController::edit/$1');
+    $routes->post('services/(:num)/update', 'Admin\ServiceController::update/$1');
+    $routes->post('services/(:num)/delete', 'Admin\ServiceController::delete/$1');
+    $routes->post('services/(:num)/images/(:num)/delete', 'Admin\ServiceController::deleteImage/$1/$2');
+    $routes->post('services/(:num)/documents/(:num)/delete', 'Admin\ServiceController::deleteDocument/$1/$2');
 });
