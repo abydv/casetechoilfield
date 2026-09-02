@@ -1,8 +1,7 @@
-<?php
-$plainDescription = $service->description ? trim(strip_tags($service->description)) : null;
-$seoTags = render_seo_tags($service->name, $plainDescription ? substr($plainDescription, 0, 300) : null, $seo);
-?>
+<?php $plainDescription = $service->description ? trim(strip_tags($service->description)) : null; ?>
 <?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags($service->name, $plainDescription ? substr($plainDescription, 0, 300) : null, $seo) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => $breadcrumbs]) ?>

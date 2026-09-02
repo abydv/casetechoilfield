@@ -1,10 +1,9 @@
-<?php
-$seoTags = render_seo_tags(
+<?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags(
     $activeCategory ? $activeCategory->name . ' Services' : 'Services',
     $activeCategory->description ?? 'Engineering and field services from CASETECH Oilfield Services.'
-);
-?>
-<?= $this->extend('site/layouts/main') ?>
+) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => $activeCategory ? [['label' => 'Services', 'url' => site_url('services')], ['label' => $activeCategory->name, 'url' => null]] : [['label' => 'Services', 'url' => null]]]) ?>

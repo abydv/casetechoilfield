@@ -1,7 +1,6 @@
-<?php
-$seoTags = render_seo_tags($form['name']);
-?>
 <?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags($form['name']) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => [['label' => $form['name'], 'url' => null]]]) ?>

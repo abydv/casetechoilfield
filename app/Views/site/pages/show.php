@@ -1,7 +1,6 @@
-<?php
-$seoTags = render_seo_tags($page->title, null, $seo);
-?>
 <?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags($page->title, null, $seo) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => $breadcrumbs]) ?>

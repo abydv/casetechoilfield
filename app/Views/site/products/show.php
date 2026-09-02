@@ -1,7 +1,6 @@
-<?php
-$seoTags = render_seo_tags($product->name, $product->short_description, $seo);
-?>
 <?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags($product->name, $product->short_description, $seo) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => $breadcrumbs]) ?>

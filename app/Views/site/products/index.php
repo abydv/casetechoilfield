@@ -1,10 +1,9 @@
-<?php
-$seoTags = render_seo_tags(
+<?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags(
     $activeCategory ? $activeCategory->name . ' Products' : 'Products',
     $activeCategory->description ?? 'Browse our full range of oilfield primary cementing equipment: casing centralizers, float equipment, cementing plugs and more.'
-);
-?>
-<?= $this->extend('site/layouts/main') ?>
+) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => $activeCategory ? [['label' => 'Products', 'url' => site_url('products')], ['label' => $activeCategory->name, 'url' => null]] : [['label' => 'Products', 'url' => null]]]) ?>

@@ -1,7 +1,6 @@
-<?php
-$seoTags = render_seo_tags('Search', null, null, null);
-?>
 <?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags('Search', null, null, null) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => [['label' => 'Search', 'url' => null]]]) ?>
