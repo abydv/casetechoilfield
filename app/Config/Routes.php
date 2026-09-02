@@ -19,6 +19,9 @@ $routes->get('projects/(:segment)', 'Site\ProjectController::show/$1');
 $routes->post('enquiry', 'Site\EnquiryController::submit');
 
 // --- Admin: auth (unauthenticated) -------------------------------------
+// NOTE: admin routes are registered before the generic page catch-all
+// at the bottom of this file (registration order controls match order),
+// so /admin/* is never swallowed by Site\PageController.
 $routes->get('admin/login', 'Admin\AuthController::showLogin');
 $routes->post('admin/login', 'Admin\AuthController::attemptLogin');
 $routes->get('admin/login/verify', 'Admin\AuthController::showVerify');
@@ -69,4 +72,23 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->post('projects/(:num)/delete', 'Admin\ProjectController::delete/$1');
     $routes->post('projects/(:num)/images/(:num)/delete', 'Admin\ProjectController::deleteImage/$1/$2');
     $routes->post('projects/(:num)/documents/(:num)/delete', 'Admin\ProjectController::deleteDocument/$1/$2');
+
+    $routes->get('enquiries', 'Admin\EnquiryController::index');
+    $routes->get('enquiries/export', 'Admin\EnquiryController::export');
+    $routes->get('enquiries/(:num)', 'Admin\EnquiryController::show/$1');
+    $routes->post('enquiries/(:num)/update', 'Admin\EnquiryController::update/$1');
+
+    $routes->get('pages', 'Admin\PageController::index');
+    $routes->get('pages/create', 'Admin\PageController::create');
+    $routes->post('pages', 'Admin\PageController::store');
+    $routes->get('pages/(:num)/edit', 'Admin\PageController::edit/$1');
+    $routes->post('pages/(:num)/update', 'Admin\PageController::update/$1');
+    $routes->post('pages/(:num)/delete', 'Admin\PageController::delete/$1');
 });
+
+// --- Public: generic CMS page catch-all --------------------------------
+// Must be the LAST route registered: any path not matched above (an
+// admin-created Page's slug — about-us, contact-us, privacy-policy, ...)
+// falls through to here. Registration order determines match priority in
+// CodeIgniter, so nothing above this line can be shadowed by it.
+$routes->get('(:segment)', 'Site\PageController::show/$1');
