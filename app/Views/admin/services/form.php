@@ -1,7 +1,10 @@
 <?= $this->extend('admin/layouts/main') ?>
 
 <?= $this->section('content') ?>
-<h1><?= $service ? 'Edit Service' : 'Add Service' ?></h1>
+<div class="page-header">
+    <h1><?= $service ? 'Edit Service' : 'Add Service' ?></h1>
+    <?php if ($service): ?><a class="btn" href="<?= site_url('admin/revisions/service/' . $service->id) ?>">History</a><?php endif; ?>
+</div>
 
 <?php if (session()->getFlashdata('errors')): ?>
     <div class="alert alert-error">

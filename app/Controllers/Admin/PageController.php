@@ -4,25 +4,34 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\PageModel;
+use App\Services\PageBodyStore;
 use App\Traits\ContentCrudHelpers;
 use Config\Database;
 
 /**
- * Pages admin. Currently authors a single 'richtext' page_section per
- * page (see App\Services\PageRenderer) — a working subset of the full
- * drag-and-drop page builder in docs/cms-specification.md §2, built on
- * the real page_sections schema so the remaining block types are a
+ * Pages admin. The main body is always a single 'richtext' page_section
+ * (App\Services\PageBodyStore); beyond that, the admin can append
+ * additional sections from a small block palette (image, cta, faq,
+ * two_column) — see addSection()/deleteSection() and
+ * App\Services\PageRenderer, which dispatches each section_type to
+ * app/Views/blocks/{type}.php. This is a working subset of the full
+ * drag-and-drop page builder in docs/cms-specification.md §2, built
+ * directly on the real page_sections schema so more block types are
  * additive, not a rewrite.
  */
 class PageController extends BaseController
 {
     use ContentCrudHelpers;
 
+    private const EXTRA_BLOCK_TYPES = ['image', 'cta', 'faq', 'two_column'];
+
     private PageModel $pages;
+    private PageBodyStore $bodyStore;
 
     public function __construct()
     {
         $this->pages = new PageModel();
+        $this->bodyStore = new PageBodyStore();
     }
 
     public function index()
@@ -39,7 +48,7 @@ class PageController extends BaseController
 
     public function create()
     {
-        return view('admin/pages/form', ['page' => null, 'body' => '', 'seo' => []]);
+        return view('admin/pages/form', ['page' => null, 'body' => '', 'seo' => [], 'extraSections' => [], 'blockTypes' => self::EXTRA_BLOCK_TYPES]);
     }
 
     public function store()
@@ -69,9 +78,10 @@ class PageController extends BaseController
             'updated_by'   => $userId,
         ], true);
 
-        $this->saveBody((int) $id, (string) $this->request->getPost('body'));
+        $body = (string) $this->request->getPost('body');
+        $this->bodyStore->save((int) $id, $body);
 
-        $this->writeRevision('page', (int) $id, $this->pages->find((int) $id)->toArray(), $userId);
+        $this->writeRevision('page', (int) $id, $this->pageSnapshot((int) $id, $body), $userId);
         $this->logAction('pages.create', 'pages', (int) $id, null, $this->request->getPost());
 
         return redirect()->to('/admin/pages')->with('success', 'Page created.');
@@ -89,10 +99,22 @@ class PageController extends BaseController
             ? $db->table('seo_meta')->where('id', $page->seo_meta_id)->get()->getRowArray()
             : [];
 
-        $section = $db->table('page_sections')->where('page_id', $id)->where('section_type', 'richtext')->get()->getRowArray();
-        $body = $section ? (json_decode($section['config'], true)['content'] ?? '') : '';
+        $body = $this->bodyStore->get((int) $id);
 
-        return view('admin/pages/form', ['page' => $page, 'body' => $body, 'seo' => $seo]);
+        $extraSections = $db->table('page_sections')
+            ->where('page_id', $id)->where('section_type !=', 'richtext')
+            ->orderBy('sort_order', 'ASC')->get()->getResultArray();
+        foreach ($extraSections as &$s) {
+            $s['config'] = json_decode($s['config'], true) ?: [];
+        }
+
+        return view('admin/pages/form', [
+            'page'          => $page,
+            'body'          => $body,
+            'seo'           => $seo,
+            'extraSections' => $extraSections,
+            'blockTypes'    => self::EXTRA_BLOCK_TYPES,
+        ]);
     }
 
     public function update($id)
@@ -132,9 +154,10 @@ class PageController extends BaseController
         ];
 
         $this->pages->update((int) $id, $data);
-        $this->saveBody((int) $id, (string) $this->request->getPost('body'));
+        $body = (string) $this->request->getPost('body');
+        $this->bodyStore->save((int) $id, $body);
 
-        $this->writeRevision('page', (int) $id, $this->pages->find((int) $id)->toArray(), $userId);
+        $this->writeRevision('page', (int) $id, $this->pageSnapshot((int) $id, $body), $userId);
         $this->logAction('pages.update', 'pages', (int) $id, $before, $data);
 
         return redirect()->to('/admin/pages/' . $id . '/edit')->with('success', 'Page saved.');
@@ -156,30 +179,110 @@ class PageController extends BaseController
         return redirect()->to('/admin/pages')->with('success', 'Page deleted.');
     }
 
-    private function saveBody(int $pageId, string $body): void
+    public function addSection($pageId)
     {
-        $db = Database::connect();
-        $existing = $db->table('page_sections')->where('page_id', $pageId)->where('section_type', 'richtext')->get()->getRowArray();
-
-        $config = json_encode(['content' => $body]);
-
-        if ($existing) {
-            $db->table('page_sections')->where('id', $existing['id'])->update([
-                'config'     => $config,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-
-            return;
+        $page = $this->pages->find((int) $pageId);
+        if (! $page) {
+            return redirect()->to('/admin/pages')->with('error', 'Page not found.');
         }
 
+        $type = $this->request->getPost('section_type');
+        if (! in_array($type, self::EXTRA_BLOCK_TYPES, true)) {
+            return redirect()->to('/admin/pages/' . $pageId . '/edit')->with('error', 'Unknown block type.');
+        }
+
+        $config = match ($type) {
+            'image' => $this->buildImageConfig(),
+            'cta' => [
+                'heading'      => $this->request->getPost('heading'),
+                'text'         => $this->request->getPost('text'),
+                'button_label' => $this->request->getPost('button_label'),
+                'button_url'   => $this->request->getPost('button_url'),
+            ],
+            'faq' => [
+                'heading' => $this->request->getPost('heading'),
+                'items'   => $this->buildFaqItems(),
+            ],
+            'two_column' => [
+                'left'  => $this->request->getPost('left'),
+                'right' => $this->request->getPost('right'),
+            ],
+            default => [],
+        };
+
+        $db = Database::connect();
+        $maxOrder = (int) ($db->table('page_sections')->selectMax('sort_order')->where('page_id', $pageId)->get()->getRow()->sort_order ?? -1);
+
         $db->table('page_sections')->insert([
-            'page_id'      => $pageId,
-            'section_type' => 'richtext',
-            'config'       => $config,
-            'sort_order'   => 0,
+            'page_id'      => (int) $pageId,
+            'section_type' => $type,
+            'config'       => json_encode($config),
+            'sort_order'   => $maxOrder + 1,
             'enabled'      => 1,
             'created_at'   => date('Y-m-d H:i:s'),
             'updated_at'   => date('Y-m-d H:i:s'),
         ]);
+
+        return redirect()->to('/admin/pages/' . $pageId . '/edit')->with('success', 'Section added.');
     }
+
+    public function deleteSection($pageId, $sectionId)
+    {
+        Database::connect()->table('page_sections')
+            ->where('page_id', $pageId)->where('id', $sectionId)->where('section_type !=', 'richtext')
+            ->delete();
+
+        return redirect()->to('/admin/pages/' . $pageId . '/edit')->with('success', 'Section removed.');
+    }
+
+    private function buildImageConfig(): array
+    {
+        $mediaId = $this->uploadOptionalImage('image', $this->currentUserId());
+        $url = null;
+        if ($mediaId) {
+            $row = Database::connect()->table('media')->select('filename')->where('id', $mediaId)->get()->getRowArray();
+            $url = $row ? base_url('uploads/' . $row['filename']) : null;
+        }
+
+        return [
+            'media_url' => $url,
+            'alt'       => $this->request->getPost('alt'),
+            'caption'   => $this->request->getPost('caption'),
+        ];
+    }
+
+    private function buildFaqItems(): array
+    {
+        $questions = $this->request->getPost('faq_question') ?? [];
+        $answers = $this->request->getPost('faq_answer') ?? [];
+        $items = [];
+
+        foreach ($questions as $i => $q) {
+            $q = trim((string) $q);
+            $a = trim((string) ($answers[$i] ?? ''));
+            if ($q === '' || $a === '') {
+                continue;
+            }
+            $items[] = ['question' => $q, 'answer' => $a];
+        }
+
+        return $items;
+    }
+
+    /**
+     * The `pages` row alone isn't the full editable state of a page —
+     * the richtext body lives in a separate page_sections row. Revision
+     * snapshots need both, or "restore" silently leaves the body
+     * unchanged. `_richtext_body` is not a pages column: it's read back
+     * out by Admin\RevisionController::restore() and never written
+     * through Model::update() (which filters to allowedFields anyway).
+     */
+    private function pageSnapshot(int $pageId, string $body): array
+    {
+        $snapshot = $this->pages->find($pageId)->toArray();
+        $snapshot['_richtext_body'] = $body;
+
+        return $snapshot;
+    }
+
 }

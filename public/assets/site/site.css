@@ -175,4 +175,5 @@ h1, h2, h3, h4 { font-family: Georgia, "Times New Roman", serif; color: var(--co
     .main-nav { display: none; }
     .product-detail { grid-template-columns: 1fr; }
     .footer-grid { grid-template-columns: 1fr; }
+    .page-two-column .container { grid-template-columns: 1fr !important; }
 }
