@@ -97,6 +97,33 @@ automatically (spec §49's "NEVER delete user-uploaded media during normal
 code deployment" and "NEVER overwrite production .env with repository
 content" are structural guarantees here, not just process discipline).
 
+### 4a. If the document root can't be pointed at public/
+
+The above assumes hPanel lets you set the domain's document root to
+`.../public`. Not every Hostinger plan does — auto-provisioned preview
+subdomains (the `something-something-1234.hostingersite.com` Hostinger
+assigns before a custom domain is pointed) in particular are usually
+stuck serving from the account root, with no per-domain document-root
+setting available. When that's the case, **every** request 404s or
+403s, not just `/install` — Apache never reaches `public/index.php` at
+all, because it's looking one level too high.
+
+The repository root ships a `.htaccess` for exactly this: it routes any
+request not already under `/public/` there, where CodeIgniter's own
+`public/.htaccess` takes over as normal — so `/install`, `/admin/login`,
+everything, all work with files uploaded as-is, without needing to
+restructure anything. Nothing outside `public/` (`app/`, `vendor/`,
+`writable/`, `.env`) is ever served directly this way: a request for,
+say, `/vendor/composer/autoload_files.php` gets rewritten to
+`public/vendor/composer/autoload_files.php`, which doesn't exist under
+`public/`, so CodeIgniter's own front controller 404s it rather than
+Apache serving the real file's contents.
+
+If your plan *does* support setting the document root to `public/`
+directly, use that instead (simpler, one less moving part) and delete
+the root `.htaccess` — it becomes unnecessary once the document root
+itself points at the right place.
+
 ## 5. Environment configuration
 
 - `.env` is created **once**, manually, directly on the server (or via a

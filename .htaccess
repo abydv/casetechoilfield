@@ -1,0 +1,45 @@
+# Root-level fallback for hosting plans that can't point the domain's
+# document root at public/ directly (see docs/deployment.md §4a) — e.g.
+# an auto-provisioned Hostinger preview subdomain, where every request
+# otherwise 404s/403s because Apache is serving from the account root
+# and never reaches public/index.php at all.
+#
+# If your hPanel lets you set the document root to `public/` for this
+# domain, use that instead — it's simpler, and this file becomes
+# unnecessary (safe to delete).
+#
+# Every request not already under /public/ is routed there, where
+# CodeIgniter's own public/.htaccess takes over front-controller
+# routing as normal. Nothing outside public/ (app/, vendor/, writable/,
+# .env, ...) is ever served directly this way: e.g. a request for
+# /vendor/composer/autoload_files.php gets rewritten to
+# public/vendor/composer/autoload_files.php, which doesn't exist under
+# public/, so CodeIgniter's own front controller 404s it normally
+# rather than Apache serving the real file's raw contents.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Requests already under /public/ (assets, public/index.php itself)
+    # are left alone here — public/.htaccess handles those.
+    RewriteCond %{REQUEST_URI} ^/public/
+    RewriteRule ^ - [L]
+
+    # Everything else is routed into public/, whose own .htaccess then
+    # rewrites it to index.php as usual.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Belt-and-suspenders: never serve .env directly, independent of
+# whether the rewrite above is in effect (e.g. mod_rewrite disabled).
+<FilesMatch "^\.env">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+Options -Indexes
