@@ -138,6 +138,16 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
 
     $routes->get('revisions/(:alpha)/(:num)', 'Admin\RevisionController::index/$1/$2');
     $routes->post('revisions/(:alpha)/(:num)/(:num)/restore', 'Admin\RevisionController::restore/$1/$2/$3');
+
+    $routes->get('system-health', 'Admin\SystemHealthController::index');
+    $routes->get('seo', 'Admin\SeoHealthController::index');
+
+    $routes->get('popups', 'Admin\PopupController::index');
+    $routes->get('popups/create', 'Admin\PopupController::create');
+    $routes->post('popups', 'Admin\PopupController::store');
+    $routes->get('popups/(:num)/edit', 'Admin\PopupController::edit/$1');
+    $routes->post('popups/(:num)/update', 'Admin\PopupController::update/$1');
+    $routes->post('popups/(:num)/delete', 'Admin\PopupController::delete/$1');
 });
 
 // --- Public: generic CMS page catch-all --------------------------------

@@ -7,9 +7,14 @@
     <link rel="stylesheet" href="<?= base_url('assets/site/site.css') ?>">
 </head>
 <body>
+    <?php $announcement = active_popups(['announcement_bar'])[0] ?? null; ?>
     <div class="announcement-bar">
-        <span>24/7 Customer Support</span>
-        <span>100% Quality Product</span>
+        <?php if ($announcement): ?>
+            <span><?= esc($announcement['content']) ?></span>
+        <?php else: ?>
+            <span>24/7 Customer Support</span>
+            <span>100% Quality Product</span>
+        <?php endif; ?>
         <a href="tel:<?= esc(setting('general.phone', '')) ?>"><?= esc(setting('general.phone', '')) ?></a>
     </div>
 
@@ -62,5 +67,21 @@
             <span><a href="<?= site_url('privacy-policy') ?>">Privacy Policy</a> &middot; <a href="<?= site_url('terms-and-conditions') ?>">Terms &amp; Conditions</a></span>
         </div>
     </footer>
+
+    <?php $modalPopups = active_popups(['promo_popup', 'newsletter_popup', 'product_popup']); ?>
+    <?php foreach ($modalPopups as $p): ?>
+        <div class="cms-popup" data-popup-id="<?= (int) $p['id'] ?>" data-delay="<?= (int) $p['delay_seconds'] ?>"
+             data-frequency="<?= esc($p['frequency']) ?>" data-desktop="<?= $p['show_desktop'] ? '1' : '0' ?>" data-mobile="<?= $p['show_mobile'] ? '1' : '0' ?>" hidden>
+            <div class="cms-popup-backdrop"></div>
+            <div class="cms-popup-box">
+                <button type="button" class="cms-popup-close" aria-label="Close">&times;</button>
+                <?php if (! empty($p['title'])): ?><h3><?= esc($p['title']) ?></h3><?php endif; ?>
+                <?php if (! empty($p['content'])): ?><div><?= nl2br(esc($p['content'])) ?></div><?php endif; ?>
+            </div>
+        </div>
+    <?php endforeach; ?>
+    <?php if (! empty($modalPopups)): ?>
+        <script src="<?= base_url('assets/site/popups.js') ?>" defer></script>
+    <?php endif; ?>
 </body>
 </html>
