@@ -9,10 +9,13 @@ on:
   workflow_run:
     workflows: ['CI']
     types: [completed]
-    branches: [main]
+    branches: [master]
 
 permissions:
   contents: read
+  # actions/download-artifact needs this to fetch the "release" artifact
+  # from the triggering CI run (a different run than this workflow's own).
+  actions: read
 
 jobs:
   deploy:

@@ -104,7 +104,7 @@ jobs:
   build:
     name: Build production artifact
     needs: test
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
