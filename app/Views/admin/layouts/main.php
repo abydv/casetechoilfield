@@ -18,10 +18,10 @@
                 <a href="<?= site_url('admin/services') ?>">Services</a>
                 <a href="<?= site_url('admin/service-categories') ?>">Service Categories</a>
                 <a href="<?= site_url('admin/projects') ?>">Projects</a>
+                <a href="<?= site_url('admin/enquiries') ?>">Enquiries</a>
                 <a href="<?= site_url('admin/media') ?>">Media</a>
                 <a href="<?= site_url('admin/menus') ?>">Menus</a>
                 <a href="<?= site_url('admin/forms') ?>">Forms</a>
-                <a href="<?= site_url('admin/enquiries') ?>">Enquiries</a>
                 <a href="<?= site_url('admin/seo') ?>">SEO</a>
                 <a href="<?= site_url('admin/settings') ?>">Settings</a>
                 <a href="<?= site_url('admin/backups') ?>">Backups</a>

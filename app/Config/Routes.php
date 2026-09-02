@@ -14,6 +14,8 @@ $routes->get('products', 'Site\ProductController::index');
 $routes->get('products/(:segment)', 'Site\ProductController::show/$1');
 $routes->get('services', 'Site\ServiceController::index');
 $routes->get('services/(:segment)', 'Site\ServiceController::show/$1');
+$routes->get('projects', 'Site\ProjectController::index');
+$routes->get('projects/(:segment)', 'Site\ProjectController::show/$1');
 $routes->post('enquiry', 'Site\EnquiryController::submit');
 
 // --- Admin: auth (unauthenticated) -------------------------------------
@@ -58,4 +60,13 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->post('services/(:num)/delete', 'Admin\ServiceController::delete/$1');
     $routes->post('services/(:num)/images/(:num)/delete', 'Admin\ServiceController::deleteImage/$1/$2');
     $routes->post('services/(:num)/documents/(:num)/delete', 'Admin\ServiceController::deleteDocument/$1/$2');
+
+    $routes->get('projects', 'Admin\ProjectController::index');
+    $routes->get('projects/create', 'Admin\ProjectController::create');
+    $routes->post('projects', 'Admin\ProjectController::store');
+    $routes->get('projects/(:num)/edit', 'Admin\ProjectController::edit/$1');
+    $routes->post('projects/(:num)/update', 'Admin\ProjectController::update/$1');
+    $routes->post('projects/(:num)/delete', 'Admin\ProjectController::delete/$1');
+    $routes->post('projects/(:num)/images/(:num)/delete', 'Admin\ProjectController::deleteImage/$1/$2');
+    $routes->post('projects/(:num)/documents/(:num)/delete', 'Admin\ProjectController::deleteDocument/$1/$2');
 });
