@@ -3,7 +3,11 @@
 <?= $this->section('content') ?>
 <div class="page-header">
     <h1>Products</h1>
-    <a class="btn btn-primary" href="<?= site_url('admin/products/create') ?>">+ Add Product</a>
+    <div style="display:flex;gap:0.5rem;">
+        <a class="btn" href="<?= site_url('admin/products/export') ?>">Export CSV</a>
+        <a class="btn" href="<?= site_url('admin/products/import') ?>">Import CSV</a>
+        <a class="btn btn-primary" href="<?= site_url('admin/products/create') ?>">+ Add Product</a>
+    </div>
 </div>
 
 <form class="filter-bar" method="get" action="<?= site_url('admin/products') ?>">
