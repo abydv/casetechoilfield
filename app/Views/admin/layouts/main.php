@@ -24,6 +24,7 @@
                 <a href="<?= site_url('admin/forms') ?>">Forms</a>
                 <a href="<?= site_url('admin/seo') ?>">SEO Health</a>
                 <a href="<?= site_url('admin/popups') ?>">Popups</a>
+                <a href="<?= site_url('admin/theme') ?>">Theme</a>
                 <a href="<?= site_url('admin/redirects') ?>">Redirects</a>
                 <a href="<?= site_url('admin/settings') ?>">Settings</a>
                 <a href="<?= site_url('admin/users') ?>">Users</a>

@@ -21,6 +21,7 @@ $routes->get('sitemap.xml', 'Site\SeoController::sitemap');
 $routes->get('robots.txt', 'Site\SeoController::robots');
 $routes->get('forms/(:segment)', 'Site\FormController::show/$1');
 $routes->post('forms/(:segment)', 'Site\FormController::submit/$1');
+$routes->get('search', 'Site\SearchController::index');
 
 // --- Admin: auth (unauthenticated) -------------------------------------
 // NOTE: admin routes are registered before the generic page catch-all
@@ -44,6 +45,9 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->post('product-categories/(:num)/delete', 'Admin\ProductCategoryController::delete/$1');
 
     $routes->get('products', 'Admin\ProductController::index');
+    $routes->get('products/export', 'Admin\ProductController::export');
+    $routes->get('products/import', 'Admin\ProductController::importForm');
+    $routes->post('products/import', 'Admin\ProductController::import');
     $routes->get('products/create', 'Admin\ProductController::create');
     $routes->post('products', 'Admin\ProductController::store');
     $routes->get('products/(:num)/edit', 'Admin\ProductController::edit/$1');
@@ -148,6 +152,9 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->get('popups/(:num)/edit', 'Admin\PopupController::edit/$1');
     $routes->post('popups/(:num)/update', 'Admin\PopupController::update/$1');
     $routes->post('popups/(:num)/delete', 'Admin\PopupController::delete/$1');
+
+    $routes->get('theme', 'Admin\ThemeController::index');
+    $routes->post('theme', 'Admin\ThemeController::save');
 });
 
 // --- Public: generic CMS page catch-all --------------------------------

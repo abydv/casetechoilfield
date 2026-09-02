@@ -37,6 +37,129 @@ class ProductController extends BaseController
         ]);
     }
 
+    /**
+     * CSV export/import (spec §56). Products are a small catalog for
+     * this site (dozens of rows, not thousands), so import runs
+     * synchronously within one request with per-row validation — the
+     * job-queue chunking pattern in docs/backup-architecture.md is for
+     * genuinely large batch work, not this scale.
+     */
+    public function export()
+    {
+        $rows = $this->products->orderBy('id')->findAll();
+        $categoryNames = Database::connect()->table('product_categories')->select('id, name')->get()->getResultArray();
+        $categoryNames = array_column($categoryNames, 'name', 'id');
+
+        $filename = 'products-' . date('Y-m-d') . '.csv';
+        $this->response->setHeader('Content-Type', 'text/csv');
+        $this->response->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
+
+        $out = fopen('php://temp', 'w+');
+        fputcsv($out, ['name', 'slug', 'product_code', 'category', 'short_description', 'status']);
+        foreach ($rows as $p) {
+            fputcsv($out, [
+                $p->name, $p->slug, $p->product_code,
+                $categoryNames[$p->category_id] ?? '', $p->short_description, $p->status,
+            ]);
+        }
+        rewind($out);
+        $csv = stream_get_contents($out);
+        fclose($out);
+
+        return $this->response->setBody($csv);
+    }
+
+    public function importForm()
+    {
+        return view('admin/products/import', ['results' => null]);
+    }
+
+    public function import()
+    {
+        $file = $this->request->getFile('csv');
+        $looksLikeCsv = $file && ($file->getClientMimeType() === 'text/csv' || $file->getClientExtension() === 'csv');
+        if (! $file || ! $file->isValid() || ! $looksLikeCsv) {
+            return redirect()->to('/admin/products/import')->with('error', 'Upload a .csv file.');
+        }
+
+        $handle = fopen($file->getTempName(), 'r');
+        $header = fgetcsv($handle);
+        if (! $header) {
+            fclose($handle);
+
+            return redirect()->to('/admin/products/import')->with('error', 'The CSV file is empty.');
+        }
+        $header = array_map(static fn ($h) => strtolower(trim($h)), $header);
+
+        $db = Database::connect();
+        $categoriesByName = array_change_key_case(array_column(
+            $db->table('product_categories')->select('id, name')->get()->getResultArray(),
+            'id', 'name'
+        ), CASE_LOWER);
+
+        $created = 0;
+        $updated = 0;
+        $errors = [];
+        $rowNumber = 1;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNumber++;
+            if (count(array_filter($row, static fn ($v) => trim((string) $v) !== '')) === 0) {
+                continue; // skip blank lines
+            }
+            $data = array_combine($header, array_pad($row, count($header), null));
+
+            $name = trim((string) ($data['name'] ?? ''));
+            if ($name === '') {
+                $errors[] = "Row {$rowNumber}: name is required.";
+                continue;
+            }
+
+            $slug = trim((string) ($data['slug'] ?? '')) ?: $this->slugify($name);
+            $categoryId = null;
+            $categoryName = trim((string) ($data['category'] ?? ''));
+            if ($categoryName !== '') {
+                $categoryId = $categoriesByName[strtolower($categoryName)] ?? null;
+                if (! $categoryId) {
+                    $errors[] = "Row {$rowNumber}: category \"{$categoryName}\" not found — left unset.";
+                }
+            }
+
+            $status = trim((string) ($data['status'] ?? 'draft'));
+            if (! in_array($status, ['draft', 'published', 'unpublished'], true)) {
+                $status = 'draft';
+            }
+
+            $existing = $this->products->where('slug', $slug)->first();
+            $payload = [
+                'name'              => $name,
+                'slug'              => $existing ? $slug : $this->uniqueSlug('products', $slug),
+                'product_code'      => $data['product_code'] ?? null,
+                'category_id'       => $categoryId,
+                'short_description' => $data['short_description'] ?? null,
+                'status'            => $status,
+                'published_at'      => $status === 'published' ? date('Y-m-d H:i:s') : null,
+                'updated_by'        => $this->currentUserId(),
+            ];
+
+            if ($existing) {
+                $this->products->update($existing->id, $payload);
+                $updated++;
+            } else {
+                $payload['created_by'] = $this->currentUserId();
+                $this->products->insert($payload);
+                $created++;
+            }
+        }
+        fclose($handle);
+
+        $this->logAction('products.import', 'products', 0, null, ['created' => $created, 'updated' => $updated, 'errors' => count($errors)]);
+
+        return view('admin/products/import', [
+            'results' => ['created' => $created, 'updated' => $updated, 'errors' => $errors],
+        ]);
+    }
+
     public function create()
     {
         return view('admin/products/form', [

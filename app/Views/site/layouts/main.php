@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?= $seoTags ?? render_seo_tags(setting('general.company_name', 'CASETECH Oilfield Services')) ?>
     <link rel="stylesheet" href="<?= base_url('assets/site/site.css') ?>">
+    <style id="theme-overrides"><?= theme_css() ?></style>
 </head>
 <body>
     <?php $announcement = active_popups(['announcement_bar'])[0] ?? null; ?>
@@ -34,6 +35,9 @@
                     <?php endforeach; ?>
                 <?php endif; ?>
             </nav>
+            <form class="header-search" action="<?= site_url('search') ?>" method="get" role="search">
+                <input type="text" name="q" placeholder="Search..." aria-label="Search" value="<?= esc(service('request')->getGet('q') ?? '') ?>">
+            </form>
             <a class="btn-cta" href="<?= site_url('contact-us') ?>">Get In Touch</a>
         </div>
     </header>
