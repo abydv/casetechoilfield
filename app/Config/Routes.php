@@ -171,6 +171,15 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->get('content/(:segment)/(:num)/edit', 'Admin\ContentEntryController::edit/$1/$2');
     $routes->post('content/(:segment)/(:num)/update', 'Admin\ContentEntryController::update/$1/$2');
     $routes->post('content/(:segment)/(:num)/delete', 'Admin\ContentEntryController::delete/$1/$2');
+
+    $routes->get('backups', 'Admin\BackupController::index');
+    $routes->post('backups/run', 'Admin\BackupController::runNow');
+    $routes->post('backups/(:num)/test', 'Admin\BackupController::testIntegrity/$1');
+    $routes->get('backups/(:num)/download', 'Admin\BackupController::download/$1');
+    $routes->post('backups/settings', 'Admin\BackupController::saveSettings');
+    $routes->get('backups/google-drive/connect', 'Admin\BackupController::connectGoogleDrive');
+    $routes->get('backups/google-drive/callback', 'Admin\BackupController::googleDriveCallback');
+    $routes->post('backups/google-drive/disconnect', 'Admin\BackupController::disconnectGoogleDrive');
 });
 
 // --- Public: custom content type entry detail pages ---------------------
