@@ -3,7 +3,7 @@
 ## 1. Flow (spec §48)
 
 ```
-push to main
+push to master
   -> GitHub Actions: test job
        - composer install (with dev deps)
        - php -l syntax check on all changed files
@@ -13,7 +13,7 @@ push to main
        - composer install --no-dev --optimize-autoloader --classmap-authoritative
        - assemble production artifact (see §3 exclude list)
        - upload artifact
-  -> deploy job (only on main, only if build passed)
+  -> deploy job (only on master, only if build passed)
        - rsync/scp artifact over SSH to a new release directory on Hostinger
        - symlink writable/, public/uploads, .env from the persistent shared location
        - run migrations (php spark migrate)
