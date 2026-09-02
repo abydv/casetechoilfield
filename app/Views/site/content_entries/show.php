@@ -1,7 +1,6 @@
-<?php
-$seoTags = render_seo_tags($entry['title'], $type['name'] . ' — CaseTech Oilfield Services', $seo);
-?>
 <?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags($entry['title'], $type['name'] . ' — CaseTech Oilfield Services', $seo) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => $breadcrumbs]) ?>

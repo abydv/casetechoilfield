@@ -1,7 +1,6 @@
-<?php
-$seoTags = render_seo_tags($project->title, $project->description ? substr(strip_tags($project->description), 0, 300) : null, $seo);
-?>
 <?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags($project->title, $project->description ? substr(strip_tags($project->description), 0, 300) : null, $seo) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => $breadcrumbs]) ?>

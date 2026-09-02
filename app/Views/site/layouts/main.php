@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <?= $seoTags ?? render_seo_tags(setting('general.company_name', 'CASETECH Oilfield Services')) ?>
+    <?= $this->renderSection('seoTags') ?: render_seo_tags(setting('general.company_name', 'CASETECH Oilfield Services')) ?>
     <link rel="stylesheet" href="<?= base_url('assets/site/site.css') ?>">
     <style id="theme-overrides"><?= theme_css() ?></style>
 </head>

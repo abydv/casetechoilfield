@@ -1,10 +1,9 @@
-<?php
-$seoTags = render_seo_tags(
+<?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags(
     setting('general.company_name', 'CASETECH Oilfield Services'),
     setting('general.tagline', '')
-);
-?>
-<?= $this->extend('site/layouts/main') ?>
+) ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 

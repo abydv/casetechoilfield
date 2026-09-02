@@ -1,7 +1,6 @@
-<?php
-$seoTags = render_seo_tags('Projects', 'Case studies from CASETECH Oilfield Services engagements in the field.');
-?>
 <?= $this->extend('site/layouts/main') ?>
+
+<?= $this->section('seoTags') ?><?= render_seo_tags('Projects', 'Case studies from CASETECH Oilfield Services engagements in the field.') ?><?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <?= $this->include('site/partials/breadcrumbs', ['breadcrumbs' => [['label' => 'Projects', 'url' => null]]]) ?>
