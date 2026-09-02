@@ -60,6 +60,9 @@ Vagrantfile
 /writable/uploads/*
 !/writable/uploads/index.html
 
+/public/uploads/*
+!/public/uploads/.gitkeep
+
 /writable/debugbar/*
 !/writable/debugbar/index.html
 
