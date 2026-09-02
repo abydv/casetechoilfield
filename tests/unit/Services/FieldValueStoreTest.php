@@ -66,7 +66,13 @@ final class FieldValueStoreTest extends DatabaseTestCase
         $field = $this->makeField('available_from', 'date');
         $this->store->setValue($this->entryId, $field, '2026-01-15');
 
-        $this->assertSame('2026-01-15', $this->store->getByFieldKey($this->entryId, [$field])['available_from']);
+        // value_date is a DATETIME column (docs/database-schema.md §3):
+        // MySQL always returns it zero-padded to a full timestamp
+        // ("2026-01-15 00:00:00"), SQLite3 returns exactly what was
+        // stored ("2026-01-15") — both are the same date, just formatted
+        // per the driver's own type affinity.
+        $value = $this->store->getByFieldKey($this->entryId, [$field])['available_from'];
+        $this->assertStringStartsWith('2026-01-15', $value);
     }
 
     public function testCheckboxFieldRoundTrips(): void
