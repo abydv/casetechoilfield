@@ -311,10 +311,15 @@ class BackupService
 
         $assembled->compress(\Phar::GZ, '.tar.gz');
         unset($assembled);
-        rename($tmpDir . '/backup.tar.gz', $finalPath);
-        // See archiveFiles() — must purge Phar's process-level cache for
-        // this path, not just remove the file, so a later run reusing
-        // this tmpDir (e.g. a retried backup) can safely recreate it.
+
+        // Plain rename() moves the file but leaves compress()'s
+        // "backup.tar.gz" registration in Phar's process-level cache
+        // (see archiveFiles()) — a later run reusing this tmpDir would
+        // then fail to compress to that same intermediate name again.
+        // copy() + Phar::unlinkArchive() produces the same final file
+        // while actually purging that registration.
+        copy($tmpDir . '/backup.tar.gz', $finalPath);
+        \Phar::unlinkArchive($tmpDir . '/backup.tar.gz');
         \Phar::unlinkArchive($tmpDir . '/backup.tar');
 
         if (! is_file($finalPath) || filesize($finalPath) === 0) {
