@@ -17,6 +17,8 @@ $routes->get('services/(:segment)', 'Site\ServiceController::show/$1');
 $routes->get('projects', 'Site\ProjectController::index');
 $routes->get('projects/(:segment)', 'Site\ProjectController::show/$1');
 $routes->post('enquiry', 'Site\EnquiryController::submit');
+$routes->get('sitemap.xml', 'Site\SeoController::sitemap');
+$routes->get('robots.txt', 'Site\SeoController::robots');
 
 // --- Admin: auth (unauthenticated) -------------------------------------
 // NOTE: admin routes are registered before the generic page catch-all
@@ -106,6 +108,19 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->post('settings/smtp/test', 'Admin\SettingsController::sendTestEmail');
     $routes->get('settings/captcha', 'Admin\SettingsController::captcha');
     $routes->post('settings/captcha', 'Admin\SettingsController::saveCaptcha');
+
+    $routes->get('redirects', 'Admin\RedirectController::index');
+    $routes->post('redirects', 'Admin\RedirectController::store');
+    $routes->post('redirects/from-not-found', 'Admin\RedirectController::fromNotFound');
+    $routes->post('redirects/(:num)/delete', 'Admin\RedirectController::delete/$1');
+    $routes->post('redirects/(:num)/toggle', 'Admin\RedirectController::toggle/$1');
+
+    $routes->get('users', 'Admin\UserController::index');
+    $routes->get('users/create', 'Admin\UserController::create');
+    $routes->post('users', 'Admin\UserController::store');
+    $routes->get('users/(:num)/edit', 'Admin\UserController::edit/$1');
+    $routes->post('users/(:num)/update', 'Admin\UserController::update/$1');
+    $routes->post('users/(:num)/delete', 'Admin\UserController::delete/$1');
 });
 
 // --- Public: generic CMS page catch-all --------------------------------

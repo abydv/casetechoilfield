@@ -4,6 +4,8 @@ namespace App\Controllers\Site;
 
 use App\Controllers\BaseController;
 use App\Models\PageModel;
+use App\Models\RedirectModel;
+use App\Services\NotFoundLogger;
 use App\Services\PageRenderer;
 use Config\Database;
 
@@ -11,8 +13,16 @@ class PageController extends BaseController
 {
     public function show(string $slug)
     {
+        $redirect = (new RedirectModel())->findActiveMatch($slug);
+        if ($redirect) {
+            (new RedirectModel())->recordHit((int) $redirect['id']);
+
+            return redirect()->to($redirect['to_path'], (int) $redirect['status_code']);
+        }
+
         $page = (new PageModel())->findBySlug($slug);
         if (! $page || ! $page->isPublished()) {
+            NotFoundLogger::record($slug, $this->request->getServer('HTTP_REFERER'));
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 

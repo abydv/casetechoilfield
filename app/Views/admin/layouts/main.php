@@ -22,8 +22,9 @@
                 <a href="<?= site_url('admin/media') ?>">Media</a>
                 <a href="<?= site_url('admin/menus') ?>">Menus</a>
                 <a href="<?= site_url('admin/forms') ?>">Forms</a>
-                <a href="<?= site_url('admin/seo') ?>">SEO</a>
+                <a href="<?= site_url('admin/redirects') ?>">Redirects</a>
                 <a href="<?= site_url('admin/settings') ?>">Settings</a>
+                <a href="<?= site_url('admin/users') ?>">Users</a>
                 <a href="<?= site_url('admin/backups') ?>">Backups</a>
                 <a href="<?= site_url('admin/system-health') ?>">System Health</a>
             </nav>
