@@ -21,4 +21,21 @@ class MediaModel extends Model
     {
         return $this->db->table('media_variants')->where('media_id', $mediaId)->get()->getResultArray();
     }
+
+    public function forListing(?string $search = null, ?int $folderId = null, int $perPage = 24)
+    {
+        $builder = $this->orderBy('created_at', 'DESC');
+
+        if ($folderId) {
+            $builder = $builder->where('folder_id', $folderId);
+        }
+        if ($search) {
+            $builder = $builder->groupStart()
+                ->like('original_filename', $search)
+                ->orLike('alt_text', $search)
+                ->groupEnd();
+        }
+
+        return $builder->paginate($perPage);
+    }
 }

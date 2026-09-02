@@ -84,6 +84,28 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->get('pages/(:num)/edit', 'Admin\PageController::edit/$1');
     $routes->post('pages/(:num)/update', 'Admin\PageController::update/$1');
     $routes->post('pages/(:num)/delete', 'Admin\PageController::delete/$1');
+
+    $routes->get('media', 'Admin\MediaController::index');
+    $routes->post('media/upload', 'Admin\MediaController::upload');
+    $routes->post('media/folders', 'Admin\MediaController::storeFolder');
+    $routes->post('media/(:num)/update', 'Admin\MediaController::update/$1');
+    $routes->post('media/(:num)/delete', 'Admin\MediaController::delete/$1');
+
+    $routes->get('menus', 'Admin\MenuController::index');
+    $routes->post('menus', 'Admin\MenuController::store');
+    $routes->get('menus/(:num)/edit', 'Admin\MenuController::edit/$1');
+    $routes->post('menus/(:num)/delete', 'Admin\MenuController::delete/$1');
+    $routes->post('menus/(:num)/items', 'Admin\MenuController::addItem/$1');
+    $routes->post('menus/(:num)/items/(:num)', 'Admin\MenuController::updateItem/$1/$2');
+    $routes->post('menus/(:num)/items/(:num)/delete', 'Admin\MenuController::deleteItem/$1/$2');
+
+    $routes->get('settings', 'Admin\SettingsController::general');
+    $routes->post('settings', 'Admin\SettingsController::saveGeneral');
+    $routes->get('settings/smtp', 'Admin\SettingsController::smtp');
+    $routes->post('settings/smtp', 'Admin\SettingsController::saveSmtp');
+    $routes->post('settings/smtp/test', 'Admin\SettingsController::sendTestEmail');
+    $routes->get('settings/captcha', 'Admin\SettingsController::captcha');
+    $routes->post('settings/captcha', 'Admin\SettingsController::saveCaptcha');
 });
 
 // --- Public: generic CMS page catch-all --------------------------------
