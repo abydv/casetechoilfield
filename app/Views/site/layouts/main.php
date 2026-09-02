@@ -17,10 +17,17 @@
         <div class="container header-inner">
             <a class="brand" href="<?= site_url('/') ?>"><?= esc(setting('general.company_name', 'CASETECH')) ?></a>
             <nav class="main-nav">
-                <a href="<?= site_url('/') ?>">Home</a>
-                <a href="<?= site_url('about-us') ?>">About Us</a>
-                <a href="<?= site_url('products') ?>">Products</a>
-                <a href="<?= site_url('contact-us') ?>">Contact Us</a>
+                <?php $mainMenu = cms_menu('main'); ?>
+                <?php if (empty($mainMenu)): ?>
+                    <a href="<?= site_url('/') ?>">Home</a>
+                    <a href="<?= site_url('about-us') ?>">About Us</a>
+                    <a href="<?= site_url('products') ?>">Products</a>
+                    <a href="<?= site_url('contact-us') ?>">Contact Us</a>
+                <?php else: ?>
+                    <?php foreach ($mainMenu as $item): ?>
+                        <a href="<?= esc($item['url']) ?>" <?= $item['open_new_tab'] ? 'target="_blank" rel="noopener"' : '' ?>><?= esc($item['label']) ?></a>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </nav>
             <a class="btn-cta" href="<?= site_url('contact-us') ?>">Get In Touch</a>
         </div>

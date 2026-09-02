@@ -19,6 +19,12 @@ if (! function_exists('setting')) {
             $cache = [];
             $rows = Database::connect()->table('site_settings')->get()->getResultArray();
             foreach ($rows as $row) {
+                if ((int) $row['is_secret'] === 1) {
+                    // Secrets are never readable through the generic helper —
+                    // use App\Services\SettingsService::getSecretPlain() from
+                    // trusted server-side code only (e.g. sending mail).
+                    continue;
+                }
                 $decoded = json_decode($row['value'], true);
                 $cache[$row['key']] = json_last_error() === JSON_ERROR_NONE ? $decoded : $row['value'];
             }
