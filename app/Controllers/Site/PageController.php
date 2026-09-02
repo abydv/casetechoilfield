@@ -3,6 +3,7 @@
 namespace App\Controllers\Site;
 
 use App\Controllers\BaseController;
+use App\Models\ContentTypeModel;
 use App\Models\PageModel;
 use App\Models\RedirectModel;
 use App\Services\NotFoundLogger;
@@ -22,6 +23,13 @@ class PageController extends BaseController
 
         $page = (new PageModel())->findBySlug($slug);
         if (! $page || ! $page->isPublished()) {
+            // Not a Page — see if a custom content type owns this slug
+            // (Admin\ContentTypeController; docs/architecture.md §5)
+            // before giving up and logging a 404.
+            if ((new ContentTypeModel())->findBySlug($slug)) {
+                return (new ContentEntryController())->index($slug);
+            }
+
             NotFoundLogger::record($slug, $this->request->getServer('HTTP_REFERER'));
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }

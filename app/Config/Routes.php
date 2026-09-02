@@ -155,7 +155,34 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
 
     $routes->get('theme', 'Admin\ThemeController::index');
     $routes->post('theme', 'Admin\ThemeController::save');
+
+    $routes->get('content-types', 'Admin\ContentTypeController::index');
+    $routes->get('content-types/create', 'Admin\ContentTypeController::create');
+    $routes->post('content-types', 'Admin\ContentTypeController::store');
+    $routes->get('content-types/(:num)/edit', 'Admin\ContentTypeController::edit/$1');
+    $routes->post('content-types/(:num)/update', 'Admin\ContentTypeController::update/$1');
+    $routes->post('content-types/(:num)/delete', 'Admin\ContentTypeController::delete/$1');
+    $routes->post('content-types/(:num)/fields', 'Admin\ContentTypeController::addField/$1');
+    $routes->post('content-types/(:num)/fields/(:num)/delete', 'Admin\ContentTypeController::deleteField/$1/$2');
+
+    $routes->get('content/(:segment)', 'Admin\ContentEntryController::index/$1');
+    $routes->get('content/(:segment)/create', 'Admin\ContentEntryController::create/$1');
+    $routes->post('content/(:segment)', 'Admin\ContentEntryController::store/$1');
+    $routes->get('content/(:segment)/(:num)/edit', 'Admin\ContentEntryController::edit/$1/$2');
+    $routes->post('content/(:segment)/(:num)/update', 'Admin\ContentEntryController::update/$1/$2');
+    $routes->post('content/(:segment)/(:num)/delete', 'Admin\ContentEntryController::delete/$1/$2');
 });
+
+// --- Public: custom content type entry detail pages ---------------------
+// A generic two-segment catch-all for any admin-defined content type
+// (Admin\ContentTypeController) — e.g. /equipment/hydraulic-pump. Placed
+// after every specific two-segment route above (products/(:segment) etc.)
+// so those always win first; Site\ContentEntryController 404s itself if
+// the first segment isn't a real content type slug. The type's own
+// single-segment listing page (/equipment) is handled by
+// Site\PageController::show()'s fallback below, not a route here, since
+// it shares the single-segment shape with page slugs.
+$routes->get('(:segment)/(:segment)', 'Site\ContentEntryController::show/$1/$2');
 
 // --- Public: generic CMS page catch-all --------------------------------
 // Must be the LAST route registered: any path not matched above (an
