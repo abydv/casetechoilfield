@@ -153,3 +153,39 @@ must revert:
 2. **Data**: restore from the most recent verified backup per
    backup-architecture.md, a deliberate Super-Admin-authorized action, never
    automatic.
+
+## 10. Alternative: web-based first-run installer
+
+Everything above assumes SSH access to run `php spark migrate`/`db:seed`.
+Not every Hostinger plan includes it — some only offer a plain file
+manager or FTP. For that case, `/install` (`App\Services\InstallerService`,
+`App\Controllers\Install`) does the same first-run bootstrap from a
+browser, over three steps:
+
+1. **Database** — enter the host/port/database/username/password (created
+   beforehand in hPanel → Databases, same as the manual `.env` setup in §5
+   would need); the installer test-connects before persisting anything.
+   Creates `.env` from `.env.example` if it doesn't exist yet, writes the
+   tested credentials into it, generates `encryption.key` if blank, and
+   points `app.baseURL` at the domain the request actually arrived on.
+2. **Setup** — runs every migration and the roles/permissions + starter
+   content seeders (site settings, redirects, pages, the product catalog)
+   — everything §6 and the SSH-based `spark db:seed` would otherwise do.
+   Safe to re-run if interrupted; every seeder involved is idempotent.
+3. **Admin account** — creates the first Super Admin from a form instead
+   of the CLI's `SEED_SUPERADMIN_EMAIL`/`SEED_SUPERADMIN_PASSWORD` env vars
+   or a random generated password. Refuses if any user already exists.
+
+After step 3, `writable/installed.lock` is written and every `/install/*`
+route redirects to `/admin/login` permanently — there's no way to re-run
+it short of deleting that file directly on the server. The same lock
+check also recognizes a site provisioned the SSH way (a Super Admin
+already exists) even without the lock file present, so the two paths
+can't collide.
+
+**Caveat inherent to any web installer** (WordPress and every other
+self-hosted CMS share this): the window between a fresh deploy going live
+and someone completing `/install` is a race — whoever gets there first
+sets the database credentials and creates the first admin account. Run
+the installer immediately after uploading, before advertising the URL
+anywhere.

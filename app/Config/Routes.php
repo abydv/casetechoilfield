@@ -23,6 +23,19 @@ $routes->get('forms/(:segment)', 'Site\FormController::show/$1');
 $routes->post('forms/(:segment)', 'Site\FormController::submit/$1');
 $routes->get('search', 'Site\SearchController::index');
 
+// --- First-run web installer (unauthenticated) --------------------------
+// Alternative to the SSH-based bootstrap in docs/deployment.md, for
+// Hostinger plans without shell access. Install::isInstalled() locks
+// every action out permanently once a Super Admin exists.
+$routes->get('install', 'Install::index');
+$routes->get('install/database', 'Install::database');
+$routes->post('install/database', 'Install::saveDatabase');
+$routes->get('install/setup', 'Install::setup');
+$routes->post('install/setup', 'Install::runSetup');
+$routes->get('install/admin', 'Install::admin');
+$routes->post('install/admin', 'Install::saveAdmin');
+$routes->get('install/finish', 'Install::finish');
+
 // --- Admin: auth (unauthenticated) -------------------------------------
 // NOTE: admin routes are registered before the generic page catch-all
 // at the bottom of this file (registration order controls match order),
