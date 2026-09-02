@@ -65,10 +65,26 @@ class RolesAndPermissionsSeeder extends Seeder
 
     public function run()
     {
+        $roleIds = $this->seedRolesAndPermissions();
+        $this->seedSuperAdmin($roleIds['super-admin']);
+    }
+
+    /**
+     * Roles + permissions only, with no Super Admin user created — used
+     * by both run() above (the `spark db:seed` / SSH path) and the web
+     * installer (App\Services\InstallerService), which creates the
+     * Super Admin interactively from a form instead of an env-var or
+     * random password.
+     *
+     * @return array<string,int> role slug => id
+     */
+    public function seedRolesAndPermissions(): array
+    {
         $roleIds = $this->seedRoles();
         $permissionIds = $this->seedPermissions();
         $this->seedRolePermissions($roleIds, $permissionIds);
-        $this->seedSuperAdmin($roleIds['super-admin']);
+
+        return $roleIds;
     }
 
     private function seedRoles(): array
