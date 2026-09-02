@@ -32,6 +32,17 @@ class InstallerService
     public const LOCK_FILE = 'installed.lock';
 
     /**
+     * app.baseURL values that mean "never actually configured" — the
+     * current .env.example/App.php default, plus the older localhost
+     * placeholder this project shipped before the Hostinger URL was
+     * known, in case an existing .env still has it.
+     */
+    private const UNCONFIGURED_BASE_URLS = [
+        'https://bisque-aardvark-342764.hostingersite.com/',
+        'http://localhost:8080/',
+    ];
+
+    /**
      * True once a Super Admin exists — checked two ways so the installer
      * can't be used to hijack a site that was already provisioned over
      * SSH (which never creates the lock file) and can't be re-run against
@@ -116,9 +127,10 @@ class InstallerService
      * Writes the tested credentials to .env (creating it from
      * .env.example if it doesn't exist yet), generating an encryption
      * key if one isn't already set, and pointing app.baseURL at the
-     * domain this request actually arrived on — the single most common
-     * thing a no-SSH deploy would otherwise leave at .env.example's
-     * `http://localhost:8080/` placeholder.
+     * domain this request actually arrived on if it's still at
+     * .env.example's shipped placeholder (see UNCONFIGURED_BASE_URLS)
+     * — the single most common thing a no-SSH deploy would otherwise
+     * forget to update.
      *
      * @param array{hostname:string,port:string,database:string,username:string,password:string} $config
      * @param string|null $envPath Overridable only so tests can point this at a throwaway
@@ -155,7 +167,7 @@ class InstallerService
         $contents = $this->setEnvValue($contents, 'database.default.password', $config['password']);
 
         $currentBaseUrl = $this->getEnvValue($contents, 'app.baseURL');
-        if ($currentBaseUrl === '' || $currentBaseUrl === 'http://localhost:8080/') {
+        if ($currentBaseUrl === '' || in_array($currentBaseUrl, self::UNCONFIGURED_BASE_URLS, true)) {
             $contents = $this->setEnvValue($contents, 'app.baseURL', $baseUrl);
         }
 
