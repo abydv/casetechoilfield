@@ -1,7 +1,10 @@
 <?= $this->extend('admin/layouts/main') ?>
 
 <?= $this->section('content') ?>
-<h1><?= $project ? 'Edit Project' : 'Add Project' ?></h1>
+<div class="page-header">
+    <h1><?= $project ? 'Edit Project' : 'Add Project' ?></h1>
+    <?php if ($project): ?><a class="btn" href="<?= site_url('admin/revisions/project/' . $project->id) ?>">History</a><?php endif; ?>
+</div>
 
 <?php if (session()->getFlashdata('errors')): ?>
     <div class="alert alert-error">

@@ -1,7 +1,10 @@
 <?= $this->extend('admin/layouts/main') ?>
 
 <?= $this->section('content') ?>
-<h1><?= $product ? 'Edit Product' : 'Add Product' ?></h1>
+<div class="page-header">
+    <h1><?= $product ? 'Edit Product' : 'Add Product' ?></h1>
+    <?php if ($product): ?><a class="btn" href="<?= site_url('admin/revisions/product/' . $product->id) ?>">History</a><?php endif; ?>
+</div>
 
 <?php if (session()->getFlashdata('errors')): ?>
     <div class="alert alert-error">

@@ -19,6 +19,8 @@ $routes->get('projects/(:segment)', 'Site\ProjectController::show/$1');
 $routes->post('enquiry', 'Site\EnquiryController::submit');
 $routes->get('sitemap.xml', 'Site\SeoController::sitemap');
 $routes->get('robots.txt', 'Site\SeoController::robots');
+$routes->get('forms/(:segment)', 'Site\FormController::show/$1');
+$routes->post('forms/(:segment)', 'Site\FormController::submit/$1');
 
 // --- Admin: auth (unauthenticated) -------------------------------------
 // NOTE: admin routes are registered before the generic page catch-all
@@ -86,6 +88,8 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->get('pages/(:num)/edit', 'Admin\PageController::edit/$1');
     $routes->post('pages/(:num)/update', 'Admin\PageController::update/$1');
     $routes->post('pages/(:num)/delete', 'Admin\PageController::delete/$1');
+    $routes->post('pages/(:num)/sections', 'Admin\PageController::addSection/$1');
+    $routes->post('pages/(:num)/sections/(:num)/delete', 'Admin\PageController::deleteSection/$1/$2');
 
     $routes->get('media', 'Admin\MediaController::index');
     $routes->post('media/upload', 'Admin\MediaController::upload');
@@ -121,6 +125,19 @@ $routes->group('admin', ['filter' => 'auth'], static function (RouteCollection $
     $routes->get('users/(:num)/edit', 'Admin\UserController::edit/$1');
     $routes->post('users/(:num)/update', 'Admin\UserController::update/$1');
     $routes->post('users/(:num)/delete', 'Admin\UserController::delete/$1');
+
+    $routes->get('forms', 'Admin\FormController::index');
+    $routes->get('forms/create', 'Admin\FormController::create');
+    $routes->post('forms', 'Admin\FormController::store');
+    $routes->get('forms/(:num)/edit', 'Admin\FormController::edit/$1');
+    $routes->post('forms/(:num)/update', 'Admin\FormController::update/$1');
+    $routes->post('forms/(:num)/delete', 'Admin\FormController::delete/$1');
+    $routes->post('forms/(:num)/fields', 'Admin\FormController::addField/$1');
+    $routes->post('forms/(:num)/fields/(:num)/delete', 'Admin\FormController::deleteField/$1/$2');
+    $routes->get('forms/(:num)/submissions', 'Admin\FormController::submissions/$1');
+
+    $routes->get('revisions/(:alpha)/(:num)', 'Admin\RevisionController::index/$1/$2');
+    $routes->post('revisions/(:alpha)/(:num)/(:num)/restore', 'Admin\RevisionController::restore/$1/$2/$3');
 });
 
 // --- Public: generic CMS page catch-all --------------------------------
