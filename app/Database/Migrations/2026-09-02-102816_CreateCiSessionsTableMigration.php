@@ -6,8 +6,6 @@ use CodeIgniter\Database\Migration;
 
 class CreateCiSessionsTableMigration extends Migration
 {
-    protected $DBGroup = 'default';
-
     public function up()
     {
         $this->forge->addField([
