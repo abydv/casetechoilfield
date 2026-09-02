@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: casetech_cms_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # 2.36.0
+        with:
+          php-version: '8.2'
+          tools: composer
+          extensions: intl, json, mbstring, mysqlnd, xml, sqlite3
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache composer dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: PHP syntax check
+        run: find app -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: composer.json validity
+        run: composer validate --strict
+
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          php spark key:generate --force
+
+      - name: Run migrations (up + rollback + up, against MySQL)
+        env:
+          database.tests.hostname: 127.0.0.1
+          database.tests.database: casetech_cms_test
+          database.tests.username: root
+          database.tests.password: ''
+          database.tests.DBDriver: MySQLi
+          database.tests.port: 3306
+        run: |
+          php spark migrate --all -e testing
+          php spark migrate:rollback --all -e testing
+          php spark migrate --all -e testing
+
+      - name: Run test suite
+        if: hashFiles('tests/**/*Test.php') != ''
+        env:
+          database.tests.hostname: 127.0.0.1
+          database.tests.database: casetech_cms_test
+          database.tests.username: root
+          database.tests.password: ''
+          database.tests.DBDriver: MySQLi
+          database.tests.port: 3306
+        run: vendor/bin/phpunit
+
+  build:
+    name: Build production artifact
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # 2.36.0
+        with:
+          php-version: '8.2'
+          tools: composer
+          extensions: intl, json, mbstring, mysqlnd, xml
+
+      - name: Install production dependencies only
+        run: composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader --classmap-authoritative
+
+      - name: Assemble deploy artifact
+        # See docs/deployment.md §3 for the full exclude rationale.
+        run: |
+          mkdir -p /tmp/release
+          rsync -a \
+            --exclude='.git' --exclude='.github' --exclude='tests' --exclude='docs' \
+            --exclude='.env' --exclude='.env.*' --exclude='phpunit*' --exclude='.phpunit.cache' \
+            --exclude='.vscode' --exclude='.idea' --exclude='writable/uploads' \
+            --exclude='writable/cache' --exclude='writable/logs' --exclude='writable/session' \
+            --exclude='writable/backup_tmp' --exclude='writable/debugbar' \
+            ./ /tmp/release/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa9 # v4.6.2
+        with:
+          name: release
+          path: /tmp/release
+          retention-days: 5

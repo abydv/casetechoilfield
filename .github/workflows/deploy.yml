@@ -1,0 +1,85 @@
+name: Deploy to Hostinger
+
+# See docs/deployment.md for the full release-directory strategy this
+# implements. This workflow is a no-op until the HOSTINGER_* secrets below
+# are configured in the repository settings — it deliberately does not fail
+# the build when they're absent, so CI stays green before hosting is set up.
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-24.04
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Check deploy secrets are configured
+        id: check
+        run: |
+          if [ -n "${{ secrets.HOSTINGER_SSH_HOST }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::HOSTINGER_SSH_HOST secret not set — skipping deploy. See docs/deployment.md §2."
+          fi
+
+      - name: Download build artifact
+        if: steps.check.outputs.configured == 'true'
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: release
+          path: release
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Install SSH key
+        if: steps.check.outputs.configured == 'true'
+        uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
+      - name: Deploy release + run migrations + health check
+        if: steps.check.outputs.configured == 'true'
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+          RELEASE_NAME="$(date +%Y-%m-%d-%H%M%S)"
+          RELEASE_DIR="$DEPLOY_PATH/releases/$RELEASE_NAME"
+
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p '$RELEASE_DIR'"
+          rsync -az -e "ssh -p $SSH_PORT" ./release/ "$SSH_USER@$SSH_HOST:$RELEASE_DIR/"
+
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -s <<EOF
+            set -euo pipefail
+            ln -sfn "$DEPLOY_PATH/shared/.env" "$RELEASE_DIR/.env"
+            ln -sfn "$DEPLOY_PATH/shared/writable" "$RELEASE_DIR/writable"
+            cd "$RELEASE_DIR"
+            php spark migrate --all
+            ln -sfn "$RELEASE_DIR" "$DEPLOY_PATH/current"
+            # Keep only the newest 2 releases (current + one rollback target).
+            cd "$DEPLOY_PATH/releases"
+            ls -1t | tail -n +3 | xargs -r rm -rf
+          EOF
+
+          # Health check against the newly-flipped release; roll the
+          # symlink back on failure (see docs/deployment.md §4, §7, §9).
+          if ! curl -fsS "https://casetechoilfield.com/healthz" > /dev/null; then
+            echo "::error::Health check failed after deploy — rolling back symlink"
+            PREVIOUS=$(ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ls -1t '$DEPLOY_PATH/releases' | sed -n 2p")
+            ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ln -sfn '$DEPLOY_PATH/releases/$PREVIOUS' '$DEPLOY_PATH/current'"
+            exit 1
+          fi
