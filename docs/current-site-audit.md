@@ -52,14 +52,22 @@ published (no PIN code, no suite/plot number, no embedded Google Map found).
 | `/about-us/` | Active | `/about-us` | |
 | `/contact-us/` | Active | `/contact-us` | |
 | `/products/` | Active | `/products` | Product listing |
-| `/bow-spring-centralizers/` | Active | `/products/bow-spring-centralizers` | Product |
-| `/cement-baskets/` | Active | `/products/cement-baskets` | Product |
-| `/solid-rigid-centralizers/` | Active | `/products/solid-rigid-centralizers` | Product |
-| `/stop-collars-2/` | Active | `/products/stop-collars` | Product; old slug has a stray `-2` — clean up in new URL, 301 old |
-| `/cable-support-coupling/` | Active | `/products/cable-support-coupling` | Product |
-| `/cementing-plug/` | Active | `/products/cementing-plug` | Product |
-| `/float-equipment/` | Active | `/products/float-equipment` | Product |
-| `/stab-in-shoe-and-collars/` | Active | `/products/stab-in-shoe-and-collars` | Product |
+| `/bow-spring-centralizers/` | Active | `/products?category=bow-spring-centralizers` | Category listing (see note below) |
+| `/cement-baskets/` | Active | `/products?category=cement-baskets` | Category listing |
+| `/solid-rigid-centralizers/` | Active | `/products?category=solid-rigid-centralizers` | Category listing |
+| `/stop-collars-2/` | Active | `/products?category=stop-collars` | Category listing; old slug has a stray `-2` — clean up in new URL, 301 old |
+| `/cable-support-coupling/` | Active | `/products?category=cable-support-coupling` | Category listing |
+| `/cementing-plug/` | Active | `/products?category=cementing-plug` | Category listing |
+| `/float-equipment/` | Active | `/products?category=float-equipment` | Category listing |
+| `/stab-in-shoe-and-collars/` | Active | `/products?category=stab-in-shoe-and-collars` | Category listing |
+
+**Note (updated once the Products module was implemented):** each of these
+8 old pages actually held several product *variants* (see §8) — in the
+built CMS each became a `product_categories` row containing several
+`products` rows, not a single product detail page. The redirect targets
+above point at the category-filtered listing accordingly; the individual
+variants get their own `/products/{slug}` detail pages once entered as
+real product data during migration.
 | `/sample-page/` | Orphaned (not in nav) | — | WP default sample page, do not migrate |
 | `/coming-soon/` | Orphaned (not in nav) | — | Legacy, do not migrate |
 | `/29-2/` | Orphaned (not in nav) | — | Untitled/auto-slugged page, do not migrate |
@@ -73,18 +81,22 @@ redirect), but are not migrated as content.
 301 redirect map to create at launch (old → new):
 
 ```
-/stop-collars-2/          -> /products/stop-collars
-/bow-spring-centralizers/ -> /products/bow-spring-centralizers
-/cement-baskets/          -> /products/cement-baskets
-/solid-rigid-centralizers/-> /products/solid-rigid-centralizers
-/cable-support-coupling/  -> /products/cable-support-coupling
-/cementing-plug/          -> /products/cementing-plug
-/float-equipment/         -> /products/float-equipment
-/stab-in-shoe-and-collars/-> /products/stab-in-shoe-and-collars
+/stop-collars-2/          -> /products?category=stop-collars
+/bow-spring-centralizers/ -> /products?category=bow-spring-centralizers
+/cement-baskets/          -> /products?category=cement-baskets
+/solid-rigid-centralizers/-> /products?category=solid-rigid-centralizers
+/cable-support-coupling/  -> /products?category=cable-support-coupling
+/cementing-plug/          -> /products?category=cementing-plug
+/float-equipment/         -> /products?category=float-equipment
+/stab-in-shoe-and-collars/-> /products?category=stab-in-shoe-and-collars
 /about-us/                -> /about-us
 /contact-us/              -> /contact-us
 /products/                -> /products
 ```
+
+This map is implemented as `App\Database\Seeds\RedirectsSeeder` (`php
+spark db:seed RedirectsSeeder`) and manageable afterwards at
+Admin → Redirects.
 
 ## 4. Navigation
 
